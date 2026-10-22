@@ -22,7 +22,7 @@
         <div class="card card-custom p-4 bg-white">
             <!-- Dominio y Conexión -->
             <h3 class="fw-bold text-secondary">www.semita.sv</h3>
-            <button id="btnConectar" class="btn btn-success my-2 w-100 fw-bold">🔵 Sistema Wi-Fi</button>
+            <button id="btnConectar" class="btn btn-success my-2 w-100 fw-bold">🟢 Sistema Wi-Fi Conectado</button>
             <hr>
 
             <!-- Escudo del FC Barcelona -->
@@ -34,95 +34,84 @@
             <div class="my-3">
                 <h5>DISTANCIA</h5>
                 <div id="valDistancia" class="display-distancia">-- cm</div>
-                <p class="mb-0">Modo: <span id="txtModo" class="badge bg-secondary">DESCONECTADO</span></p>
+                <p class="mb-0">Modo: <span id="txtModo" class="badge bg-success">AUTOMÁTICO</span></p>
                 <p>Estado Motor: <span id="txtMotor" class="badge bg-dark">DETENIDO</span></p>
             </div>
 
             <!-- Conmutador de Modos -->
             <div class="d-flex justify-content-center gap-2 mb-3">
-                <button onclick="enviarComando('MODO_AUTO')" class="btn btn-outline-primary btn-sm">Modo Automático</button>
-                <button onclick="enviarComando('MODO_MANUAL')" class="btn btn-outline-warning btn-sm">Modo Manual</button>
+                <button onclick="cambiarModo('AUTOMATICO')" class="btn btn-outline-primary btn-sm">Modo Automático</button>
+                <button onclick="cambiarModo('MANUAL')" class="btn btn-outline-warning btn-sm">Modo Manual</button>
             </div>
 
             <!-- Botones de Control Manual -->
             <div class="d-grid gap-2">
-                <button onclick="enviarComando('IZQUIERDA')" class="btn btn-primary">IZQUIERDA</button>
-                <button onclick="enviarComando('DERECHA')" class="btn btn-primary">DERECHA</button>
-                <button onclick="enviarComando('DETENER')" class="btn btn-danger">DETENER</button>
+                <button onclick="enviarComandoMotor('IZQUIERDA')" class="btn btn-primary">IZQUIERDA</button>
+                <button onclick="enviarComandoMotor('DERECHA')" class="btn btn-primary">DERECHA</button>
+                <button onclick="enviarComandoMotor('DETENER')" class="btn btn-danger">DETENER</button>
             </div>
         </div>
     </div>
 
-    <!-- Script de conexión con MockAPI corregido -->
     <script>
         const apiUrl = "https://6ad813a395e98f36aef2ea16.mockapi.io/sistema/1";
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const btnConectar = document.getElementById('btnConectar');
-            btnConectar.innerText = "🟢 Sistema Wi-Fi Conectado";
-            btnConectar.classList.remove('btn-success');
-            btnConectar.classList.add('btn-primary');
-
-            document.getElementById('txtModo').innerText = "AUTOMÁTICO / WEB";
-            document.getElementById('txtModo').className = "badge bg-success";
-        });
 
         async function obtenerDatos() {
             try {
                 let response = await fetch(apiUrl);
-                if (!response.ok) throw new Error("Error en la respuesta de la API");
                 let data = await response.json();
                 
                 document.getElementById('valDistancia').innerText = (data.distancia || "--") + " cm";
-                
-                if (data.motor) {
+                if(data.motor) {
                     document.getElementById('txtMotor').innerText = data.motor;
+                }
+                if(data.modo) {
+                    let badgeModo = document.getElementById('txtModo');
+                    badgeModo.innerText = data.modo;
+                    badgeModo.className = data.modo === 'MANUAL' ? 'badge bg-warning text-dark' : 'badge bg-success';
                 }
             } catch (error) {
                 console.error("Error al leer MockAPI:", error);
             }
         }
 
-        async function enviarComando(cmd) {
+        async function cambiarModo(nuevoModo) {
             try {
-                let datosAEnviar = {};
-
-                if (cmd === 'IZQUIERDA' || cmd === 'DERECHA' || cmd === 'DETENER') {
-                    datosAEnviar = { motor: cmd };
-                    document.getElementById('txtMotor').innerText = cmd;
-                } 
-                else if (cmd === 'MODO_AUTO') {
-                    datosAEnviar = { modo: "AUTOMÁTICO" };
-                    document.getElementById('txtModo').innerText = "AUTOMÁTICO";
-                    document.getElementById('txtModo').className = "badge bg-success";
-                } 
-                else if (cmd === 'MODO_MANUAL') {
-                    datosAEnviar = { modo: "MANUAL" };
-                    document.getElementById('txtModo').innerText = "MANUAL";
-                    document.getElementById('txtModo').className = "badge bg-warning text-dark";
-                }
-
                 let response = await fetch(apiUrl, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(datosAEnviar)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modo: nuevoModo })
                 });
-
-                if (!response.ok) {
-                    throw new Error("No se pudo actualizar el registro en MockAPI");
+                if (response.ok) {
+                    document.getElementById('txtModo').innerText = nuevoModo;
+                    document.getElementById('txtModo').className = nuevoModo === 'MANUAL' ? 'badge bg-warning text-dark' : 'badge bg-success';
+                    console.log("Modo cambiado a:", nuevoModo);
                 }
-
-                let resultado = await response.json();
-                console.log("Comando enviado y guardado con éxito:", resultado);
             } catch (error) {
-                console.error("Error al enviar comando a MockAPI:", error);
-                alert("No se pudo enviar el comando a la API. Revisa la consola.");
+                console.error("Error al cambiar modo:", error);
             }
         }
 
-        // Ejecutar la lectura de datos automáticamente cada 2 segundos
+        async function enviarComandoMotor(accion) {
+            try {
+                // Al presionar un botón manual, asegurarnos de poner el sistema en MANUAL
+                let response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ motor: accion, modo: "MANUAL" })
+                });
+                if (response.ok) {
+                    document.getElementById('txtMotor').innerText = accion;
+                    document.getElementById('txtModo').innerText = "MANUAL";
+                    document.getElementById('txtModo').className = "badge bg-warning text-dark";
+                    console.log("Comando motor enviado:", accion);
+                }
+            } catch (error) {
+                console.error("Error al enviar comando del motor:", error);
+            }
+        }
+
+        // Consultar la API cada 2 segundos para refrescar la pantalla web
         setInterval(obtenerDatos, 2000);
     </script>
 </body>
