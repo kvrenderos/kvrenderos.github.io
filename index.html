@@ -33,11 +33,23 @@
     // 3. Función para ENVIAR comandos (Izquierda, Derecha, Detener, Modos) hacia MockAPI
     async function enviarComando(cmd) {
         try {
-            // Traducir el comando de los botones al formato que lee tu Arduino
-            let estadoMotor = "DETENIDO";
-            if (cmd === 'IZQUIERDA') estadoMotor = "IZQUIERDA";
-            if (cmd === 'DERECHA') estadoMotor = "DERECHA";
-            if (cmd === 'DETENER') estadoMotor = "DETENIDO";
+            let datosAEnviar = {};
+
+            // Traducir los comandos de los botones de control manual o modos
+            if (cmd === 'IZQUIERDA' || cmd === 'DERECHA' || cmd === 'DETENER') {
+                datosAEnviar = { motor: cmd };
+                document.getElementById('txtMotor').innerText = cmd;
+            } 
+            else if (cmd === 'MODO_AUTO') {
+                datosAEnviar = { modo: "AUTOMÁTICO" };
+                document.getElementById('txtModo').innerText = "AUTOMÁTICO";
+                document.getElementById('txtModo').className = "badge bg-success";
+            } 
+            else if (cmd === 'MODO_MANUAL') {
+                datosAEnviar = { modo: "MANUAL" };
+                document.getElementById('txtModo').innerText = "MANUAL";
+                document.getElementById('txtModo').className = "badge bg-warning text-dark";
+            }
 
             // Hacer una petición PUT para actualizar el registro en la nube
             let response = await fetch(apiUrl, {
@@ -45,12 +57,11 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ motor: estadoMotor })
+                body: JSON.stringify(datosAEnviar)
             });
 
             if (response.ok) {
-                document.getElementById('txtMotor').innerText = estadoMotor;
-                console.log("Comando enviado con éxito:", estadoMotor);
+                console.log("Comando enviado con éxito:", datosAEnviar);
             }
         } catch (error) {
             console.error("Error al enviar comando a MockAPI:", error);
