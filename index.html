@@ -53,26 +53,29 @@
         </div>
     </div>
 
-    <!-- Script de conexión con MockAPI -->
+    <!-- Script de conexión con MockAPI corregido -->
     <script>
         const apiUrl = "https://6ad813a395e98f36aef2ea16.mockapi.io/sistema/1";
 
-        const btnConectar = document.getElementById('btnConectar');
-        btnConectar.innerText = "🟢 Sistema Wi-Fi Conectado";
-        btnConectar.classList.remove('btn-success');
-        btnConectar.classList.add('btn-primary');
+        window.addEventListener('DOMContentLoaded', () => {
+            const btnConectar = document.getElementById('btnConectar');
+            btnConectar.innerText = "🟢 Sistema Wi-Fi Conectado";
+            btnConectar.classList.remove('btn-success');
+            btnConectar.classList.add('btn-primary');
 
-        document.getElementById('txtModo').innerText = "AUTOMÁTICO / WEB";
-        document.getElementById('txtModo').className = "badge bg-success";
+            document.getElementById('txtModo').innerText = "AUTOMÁTICO / WEB";
+            document.getElementById('txtModo').className = "badge bg-success";
+        });
 
         async function obtenerDatos() {
             try {
                 let response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Error en la respuesta de la API");
                 let data = await response.json();
                 
                 document.getElementById('valDistancia').innerText = (data.distancia || "--") + " cm";
                 
-                if(data.motor) {
+                if (data.motor) {
                     document.getElementById('txtMotor').innerText = data.motor;
                 }
             } catch (error) {
@@ -107,15 +110,19 @@
                     body: JSON.stringify(datosAEnviar)
                 });
 
-                if (response.ok) {
-                    console.log("Comando enviado con éxito:", datosAEnviar);
+                if (!response.ok) {
+                    throw new Error("No se pudo actualizar el registro en MockAPI");
                 }
+
+                let resultado = await response.json();
+                console.log("Comando enviado y guardado con éxito:", resultado);
             } catch (error) {
                 console.error("Error al enviar comando a MockAPI:", error);
-                alert("No se pudo enviar el comando a la API.");
+                alert("No se pudo enviar el comando a la API. Revisa la consola.");
             }
         }
 
+        // Ejecutar la lectura de datos automáticamente cada 2 segundos
         setInterval(obtenerDatos, 2000);
     </script>
 </body>
